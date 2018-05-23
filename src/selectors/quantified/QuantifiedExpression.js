@@ -31,12 +31,19 @@ class QuantifiedExpression extends Selector {
 		this._quantifier = quantifier;
 		this._inClauses = inClauses;
 		this._satisfiesExpr = satisfiesExpr;
+
+		this._inClauseVariableNames = null;
 	}
 
-	evaluate (dynamicContext) {
+	performStaticEvaluation (staticContext) {
+		this._inClauseVariableNames = this._inClauses.map(inClause => buildVarName(inClause[0], staticContext));
+
+	}
+
+	evaluate (dynamicContext, executionParameters) {
 		const evaluatedInClauses = this._inClauses.map(inClause => ({
 			name: buildVarName(inClause[0]),
-			valueArray: inClause[1].evaluateMaybeStatically(dynamicContext).getAllValues()
+			valueArray: inClause[1].evaluateMaybeStatically(dynamicContext, executionParameters).getAllValues()
 		}));
 
 		const indices = new Array(evaluatedInClauses.length).fill(0);
@@ -59,7 +66,7 @@ class QuantifiedExpression extends Selector {
 					variables[evaluatedInClauses[y].name] = () => Sequence.singleton(value);
 				}
 
-				const context = dynamicContext.scopeWithVariables(variables);
+				const context = dynamicContext.scopeWithVariableBindings(variables);
 
 				const result = this._satisfiesExpr.evaluateMaybeStatically(context);
 
